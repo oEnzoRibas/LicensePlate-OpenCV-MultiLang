@@ -32,7 +32,8 @@
 *.app
 
 
-*/benchmark/images/dataset/
+**/dataset/
+**/processed_plates/
 
-*/benchmark/images/processed_plates/
+**D:\Users\Enzo HD\Github\Repos\er\cppHandDector\cppHaarCascadeLPD\HaarCascade\benchmark\images
 
