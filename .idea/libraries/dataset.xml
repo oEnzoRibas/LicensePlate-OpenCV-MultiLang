@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="dataset">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/pyHaarCascadeLPD/HaarCascade/benchmark/images/dataset/dataset2.zip!/" />
+      <root url="jar://$PROJECT_DIR$/pyHaarCascadeLPD/HaarCascade/benchmark/images/dataset/dataset1.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

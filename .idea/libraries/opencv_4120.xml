@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="opencv-4120">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/javaHaarCascadeLPD/src/benchmark/resources/opencv-4120/opencv-4120.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
