@@ -16,8 +16,6 @@ import java.util.stream.Stream;
 
 public class BenchMarkPlates {
 
-    // --- CONFIGURAÇÃO DE CAMINHOS ---
-    // Ajuste este BASE_PATH para apontar para a sua pasta benchmark real
     static String BASE_PATH = "src/benchmark";
 
     static String RESOURCE_DIR = BASE_PATH + "/resources";
@@ -32,15 +30,12 @@ public class BenchMarkPlates {
     };
 
     public static void main(String[] args) throws IOException {
-        // Carrega a DLL nativa do OpenCV. 
-        // Se der erro aqui, adicione -Djava.library.path=... na configuração de Run do IntelliJ
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-        System.out.println("⚙️ Versão do OpenCV Java: " + Core.VERSION);
+        System.out.println("OpenCV Java version: " + Core.VERSION);
 
         Random random = new Random();
 
-        // Garante diretórios base
         new File(OUTPUT_CSV_BASE).mkdirs();
         new File(OUTPUT_IMG_BASE).mkdirs();
 
@@ -48,28 +43,25 @@ public class BenchMarkPlates {
             String xmlPath = RESOURCE_DIR + "/" + xmlFile;
 
             System.out.println("-".repeat(60));
-            System.out.println("🚀 Iniciando Benchmark para o modelo: " + xmlFile);
+            System.out.println("Starting Benchmark for Model: " + xmlFile);
 
             if (!new File(xmlPath).exists()) {
-                System.out.println("❌ Erro: XML não encontrado em " + xmlPath);
+                System.out.println("Error: XML not found at " + xmlPath);
                 continue;
             }
 
             CascadeClassifier detector = new CascadeClassifier(xmlPath);
             if (detector.empty()) {
-                System.out.println("❌ Erro ao carregar o detector.");
+                System.out.println("Error loading detector.");
                 continue;
             }
 
-            // Identificação do Modelo (Tag)
             String modelTag = "UNKNOWN";
             if (xmlFile.contains("16stages")) modelTag = "16STAGES";
             else if (xmlFile.contains("russian")) modelTag = "RUS";
 
-            // Nome da pasta (remove extensão)
             String modelNameFolder = xmlFile.replace(".xml", "");
 
-            // 1. Gera ID e Pastas
             int runId = 10000 + random.nextInt(90000);
 
             String modelCsvFolder = OUTPUT_CSV_BASE + "/" + modelNameFolder;
@@ -81,30 +73,47 @@ public class BenchMarkPlates {
             String csvFilename = "results_" + modelTag + "_" + runId + ".csv";
             String csvPath = modelCsvFolder + "/" + csvFilename;
 
-            System.out.println("   📁 Salvando CSV em: " + modelCsvFolder);
-            System.out.println("   📄 Arquivo: " + csvFilename);
+            System.out.println("   Saving CSV in: " + modelCsvFolder);
+            System.out.println("   File: " + csvFilename);
 
             try (PrintWriter writer = new PrintWriter(new FileWriter(csvPath))) {
-                // Cabeçalho CSV
                 writer.println("file,model,type,dataset,detected_count,time_ns,first_x,first_y,first_w,first_h");
 
                 processDataset(detector, DATASET1_PATH, "DS1", writer, imgFolder, modelTag);
                 processDataset(detector, DATASET2_PATH, "DS2", writer, imgFolder, modelTag);
             }
 
-            System.out.println("✅ Finalizado para " + xmlFile);
+            System.out.println("Finished for " + xmlFile);
         }
     }
 
+    /*
+    Processes a dataset folder, runs detection on each image, and writes results to CSV.
+
+    1. Defines image TYPE based on dataset and folder structure.
+    2. Measures detection time.
+    3. Writes results to CSV including detected count and first plate coordinates.
+    4. Saves processed images with rectangles drawn around detected plates.
+
+    @param detector CascadeClassifier for license plate detection.
+    @param datasetPathStr Path to the dataset folder.
+    @param datasetId Identifier for the dataset (e.g., "DS1", "DS2").
+    @param writer PrintWriter for writing CSV results.
+    @param outputImgFolder Folder to save processed images.
+    @param modelTag Tag identifying the model used for detection.
+
+    @throws IOException If file operations fail.
+
+    @return void
+    */
     private static void processDataset(CascadeClassifier detector, String datasetPathStr, String datasetId, PrintWriter writer, String outputImgFolder, String modelTag) {
         File datasetDir = new File(datasetPathStr);
         if (!datasetDir.exists()) {
-            System.out.println("⚠️ Aviso: Dataset não encontrado: " + datasetPathStr);
+            System.out.println("Warning: Dataset not found: " + datasetPathStr);
             return;
         }
 
-        System.out.println("   📂 Varrendo Dataset: " + datasetId + "...");
-
+        System.out.println("   Scanning Dataset: " + datasetId + "...");
         try (Stream<Path> paths = Files.walk(Paths.get(datasetPathStr))) {
             paths.filter(Files::isRegularFile).forEach(path -> {
                 String filename = path.getFileName().toString();
@@ -114,15 +123,12 @@ public class BenchMarkPlates {
                     return;
                 }
 
-                // 1. Definir o TIPO
                 String imgType = getImageType(path, datasetId);
 
-                // Carrega Imagem
                 Mat frame = Imgcodecs.imread(path.toString());
-                if (frame.empty()) return; // Falha ao ler
+                if (frame.empty()) return; 
 
                 try {
-                    // 2. Medição de Tempo
                     long startTime = System.nanoTime();
 
                     MatOfRect plates = new MatOfRect();
@@ -142,7 +148,6 @@ public class BenchMarkPlates {
                     Rect[] platesArray = plates.toArray();
                     int count = platesArray.length;
 
-                    // 3. Dados para CSV
                     int firstX = 0, firstY = 0, firstW = 0, firstH = 0;
 
                     if (count > 0) {
@@ -155,17 +160,14 @@ public class BenchMarkPlates {
                         }
                     }
 
-                    // Salvar Imagem
                     String uniqueFilename = modelTag + "_" + imgType + "_" + datasetId + "_" + filename;
                     Imgcodecs.imwrite(outputImgFolder + "/" + uniqueFilename, frame);
 
-                    // Escrever CSV (Locale.US para usar ponto decimal se precisar, embora aqui sejam inteiros/longs)
                     writer.printf(Locale.US, "%s,%s,%s,%s,%d,%d,%d,%d,%d,%d%n",
                             filename, modelTag, imgType, datasetId, count, durationNs,
                             firstX, firstY, firstW, firstH);
 
                 } finally {
-                    // CRUCIAL: Libera memória nativa imediatamente para não estourar a RAM
                     frame.release();
                 }
             });
@@ -177,10 +179,8 @@ public class BenchMarkPlates {
     private static String getImageType(Path filePath, String datasetId) {
         if ("DS1".equals(datasetId)) {
             try {
-                // Lógica relativa ao DATASET1_PATH
                 Path dsRoot = Paths.get(DATASET1_PATH);
                 Path relative = dsRoot.relativize(filePath);
-                // Pega o primeiro nome da pasta (ex: Brazil)
                 if (relative.getNameCount() > 0) {
                     return relative.getName(0).toString();
                 }
