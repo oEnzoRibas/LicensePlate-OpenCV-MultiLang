@@ -3,8 +3,9 @@ import os
 import csv
 import time
 import numpy as np
-import random # Importado para gerar números aleatórios
+import random 
 
+print(f"🐍 Versão do OpenCV em Python: {cv2.__version__}")
 # --- CONFIGURAÇÃO DE CAMINHOS ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_PATH = os.path.join(SCRIPT_DIR, "benchmark")
@@ -44,7 +45,8 @@ def get_image_type(root_folder, filename, dataset_origin):
     
     return "Unknown"
 
-def process_dataset(detector, dataset_path, dataset_id, csv_writer, output_img_folder):
+# Adicionei o parametro model_tag
+def process_dataset(detector, dataset_path, dataset_id, csv_writer, output_img_folder, model_tag):
     """
     Processa uma pasta inteira (e subpastas) usando o detector fornecido.
     """
@@ -93,13 +95,14 @@ def process_dataset(detector, dataset_path, dataset_id, csv_writer, output_img_f
                     if i == 0:
                         first_x, first_y, first_w, first_h = x, y, w, h
             
-            # Salvar imagem processada
-            unique_filename = f"{img_type}_{dataset_id}_{filename}"
+            # Salvar imagem processada (Adicionado model_tag no nome)
+            unique_filename = f"{model_tag}_{img_type}_{dataset_id}_{filename}"
             cv2.imwrite(os.path.join(output_img_folder, unique_filename), frame)
 
-            # Escrever no CSV
+            # Escrever no CSV (Adicionado model)
             csv_writer.writerow({
                 'file': filename,
+                'model': model_tag,        # Nova Coluna
                 'type': img_type,
                 'dataset': dataset_id,
                 'detected_count': count,
@@ -128,21 +131,25 @@ def main():
             print(f"❌ Erro ao carregar o detector (arquivo corrompido?).")
             continue
 
+        # --- LÓGICA DE IDENTIFICAÇÃO DO MODELO (Igual ao C++) ---
+        model_tag = "UNKNOWN"
+        if "16stages" in xml_file:
+            model_tag = "16STAGES"
+        elif "russian" in xml_file:
+            model_tag = "RUS"
+
         model_name = xml_file.replace(".xml", "")
-        
-        # --- MUDANÇAS AQUI ---
         
         # 1. Gera número aleatório para o ID da execução
         run_id = random.randint(10000, 99999)
         
         # 2. Define pasta específica para o CSV deste modelo
-        # Ex: benchmark/csvs/haarcascade_russian_plate_number/
         model_csv_folder = os.path.join(OUTPUT_CSV_BASE, model_name)
         os.makedirs(model_csv_folder, exist_ok=True)
         
-        # 3. Define nome do arquivo com o número aleatório
-        # Ex: results_12345.csv (dentro da pasta do modelo)
-        csv_filename = f"results_{run_id}.csv"
+        # 3. Define nome do arquivo com a TAG e número aleatório
+        # Ex: results_RUS_12345.csv
+        csv_filename = f"results_{model_tag}_{run_id}.csv"
         csv_path = os.path.join(model_csv_folder, csv_filename)
         
         # Pasta de imagens também separada por modelo
@@ -152,14 +159,15 @@ def main():
         print(f"   📁 Salvando CSV em: {model_csv_folder}")
         print(f"   📄 Arquivo: {csv_filename}")
 
+        # Adicionei 'model' no fieldnames
         with open(csv_path, mode='w', newline='') as f:
-            fieldnames = ['file', 'type', 'dataset', 'detected_count', 'time_ns', 'first_x', 'first_y', 'first_w', 'first_h']
+            fieldnames = ['file', 'model', 'type', 'dataset', 'detected_count', 'time_ns', 'first_x', 'first_y', 'first_w', 'first_h']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
             # Processa Datasets
-            process_dataset(detector, DATASET1_PATH, "DS1", writer, img_folder)
-            process_dataset(detector, DATASET2_PATH, "DS2", writer, img_folder)
+            process_dataset(detector, DATASET1_PATH, "DS1", writer, img_folder, model_tag)
+            process_dataset(detector, DATASET2_PATH, "DS2", writer, img_folder, model_tag)
 
         print(f"✅ Finalizado para {xml_file}.")
 

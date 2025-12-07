@@ -12,6 +12,7 @@ using namespace cv;
 using namespace std;
 namespace fs = std::filesystem;
 
+
 // --- CONFIGURAÇÃO DE CAMINHOS ---
 const string BASE_PATH = "../benchmark"; 
 
@@ -51,8 +52,8 @@ string getImageType(const string& root_folder, const string& filename, const str
     return "Unknown";
 }
 
-// --- FUNÇÃO AUXILIAR: Process Dataset ---
-void processDataset(CascadeClassifier& detector, const string& dataset_path, const string& dataset_id, ofstream& csv_writer, const string& output_img_folder) {
+// --- FUNÇÃO AUXILIAR: Process Dataset  ---
+void processDataset(CascadeClassifier& detector, const string& dataset_path, const string& dataset_id, ofstream& csv_writer, const string& output_img_folder, const string& model_tag) {
     
     if (!fs::exists(dataset_path)) {
         cout << "⚠️ Aviso: Pasta do dataset nao encontrada: " << dataset_path << endl;
@@ -112,12 +113,13 @@ void processDataset(CascadeClassifier& detector, const string& dataset_path, con
         }
 
         // Salvar imagem processada
-        string unique_filename = img_type + "_" + dataset_id + "_" + filename;
+        string unique_filename = model_tag + "_" + img_type + "_" + dataset_id + "_" + filename;
         string output_path = output_img_folder + "/" + unique_filename;
         imwrite(output_path, frame);
 
         // Escrever no CSV
         csv_writer << filename << ","
+                   << model_tag << "," // Nova Coluna
                    << img_type << ","
                    << dataset_id << ","
                    << count << ","
@@ -131,6 +133,8 @@ void processDataset(CascadeClassifier& detector, const string& dataset_path, con
 
 int main() {
     // Configura gerador de números aleatórios
+    
+    std::cout << "⚙️  Versao do OpenCV em C++: " << CV_VERSION << std::endl;
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> distr(10000, 99999);
@@ -156,22 +160,31 @@ int main() {
             continue;
         }
 
+        // --- LÓGICA DE IDENTIFICAÇÃO DO MODELO ---
+        string model_tag = "UNKNOWN";
+        if (xml_file.find("16stages") != string::npos) {
+            model_tag = "16STAGES";
+        } else if (xml_file.find("russian") != string::npos) {
+            model_tag = "RUS";
+        }
+
         // Remove extensão .xml para usar no nome da pasta
-        string model_name = xml_file;
-        size_t lastindex = model_name.find_last_of("."); 
-        if (lastindex != string::npos) model_name = model_name.substr(0, lastindex);
+        string model_name_folder = xml_file;
+        size_t lastindex = model_name_folder.find_last_of("."); 
+        if (lastindex != string::npos) model_name_folder = model_name_folder.substr(0, lastindex);
 
         // 1. Gera ID aleatório
         int run_id = distr(gen);
 
         // 2. Define pastas
-        string model_csv_folder = OUTPUT_CSV_BASE + "/" + model_name;
+        string model_csv_folder = OUTPUT_CSV_BASE + "/" + model_name_folder;
         fs::create_directories(model_csv_folder);
 
-        string img_folder = OUTPUT_IMG_BASE + "/" + model_name;
+        string img_folder = OUTPUT_IMG_BASE + "/" + model_name_folder;
         fs::create_directories(img_folder);
 
-        string csv_filename = "results_" + to_string(run_id) + ".csv";
+        // 3. Define Nome do Arquivo CSV com a TAG
+        string csv_filename = "results_" + model_tag + "_" + to_string(run_id) + ".csv";
         string csv_path = model_csv_folder + "/" + csv_filename;
 
         cout << "   📁 Salvando CSV em: " << model_csv_folder << endl;
@@ -183,12 +196,12 @@ int main() {
             continue;
         }
 
-        // Cabeçalho CSV
-        csvFile << "file,type,dataset,detected_count,time_ns,first_x,first_y,first_w,first_h" << endl;
+        // Cabeçalho CSV (Adicionei a coluna 'model')
+        csvFile << "file,model,type,dataset,detected_count,time_ns,first_x,first_y,first_w,first_h" << endl;
 
         // Processa Datasets
-        processDataset(detector, DATASET1_PATH, "DS1", csvFile, img_folder);
-        processDataset(detector, DATASET2_PATH, "DS2", csvFile, img_folder);
+        processDataset(detector, DATASET1_PATH, "DS1", csvFile, img_folder, model_tag);
+        processDataset(detector, DATASET2_PATH, "DS2", csvFile, img_folder, model_tag);
 
         csvFile.close();
         cout << "✅ Finalizado para " << xml_file << "." << endl;

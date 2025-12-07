@@ -1,3 +1,5 @@
 # ninja log v6
-6	8834	7867638632390865	CMakeFiles/benchmark_plates.dir/LicensePlateHaarCascade.cpp.obj	d2ecb5d2ac6b4d9e
-8839	9677	7867638720709860	benchmark_plates.exe	ac0c689c112f9880
+6	3351	7867685191202298	CMakeFiles/benchmark_plates.dir/LicensePlateHaarCascade.cpp.obj	13041d33fb0f58b1
+3357	3943	7867685224699753	benchmark_plates.exe	ac0c689c112f9880
+13	3583	7867700001104381	CMakeFiles/benchmark_plates.dir/LicensePlateHaarCascade.cpp.obj	13041d33fb0f58b1
+3588	4214	7867700036825142	benchmark_plates.exe	ac0c689c112f9880
