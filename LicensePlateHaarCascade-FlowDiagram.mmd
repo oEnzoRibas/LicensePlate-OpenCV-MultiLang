@@ -1,0 +1,39 @@
+---
+config:
+  layout: dagre
+  look: neo
+  theme: mc
+---
+flowchart TB
+ subgraph Benchmarking["Núcleo do Teste"]
+    direction TB
+        StartTimer(("Iniciar<br>Timer"))
+        Detect["Executar detectMultiScale<br>Scale: 1.1 | Neigh: 3 | Min: 30x30"]
+        StopTimer(("Parar<br>Timer"))
+  end
+ subgraph s1["Untitled subgraph"]
+        n1["Untitled Node"]
+  end
+    Start(["Início"]) --> Init["Inicializar Diretórios de Saída"]
+    Init --> LoopModel{"Para cada<br>Modelo Haar"}
+    LoopModel -- Fim da Lista --> End(["Fim"])
+    LoopModel -- Próximo Modelo --> CreateCSV["Criar Arquivo CSV Único"]
+    CreateCSV --> LoopDataset{"Para cada<br>Dataset"}
+    LoopDataset -- Fim --> LoopModel
+    LoopDataset -- Próximo --> ScanFiles["Varredura Recursiva de Arquivos"]
+    ScanFiles --> CheckExt{"É Imagem Válida?<br>.jpg, .png, .bmp"}
+    CheckExt -- Não --> ScanFiles
+    CheckExt -- Sim --> ReadImg["Carregar Imagem<br>cv::imread / BGR"]
+    StartTimer --> Detect
+    Detect --> StopTimer
+    ReadImg --> StartTimer
+    StopTimer --> CalcTime["Calcular Duração <br> (nanossegundos)"]
+    CalcTime --> Draw["Desenhar Bounding Boxes"]
+    Draw --> SaveImg["Salvar Imagem Processada"]
+    SaveImg --> SaveCSV["Gravar Dados no CSV"]
+    SaveCSV --> ScanFiles
+
+    style Detect fill:#ffcc80,stroke:#e65100,stroke-width:2px
+    style Start fill:#f9f,stroke:#333,stroke-width:2px
+    style End fill:#f9f,stroke:#333,stroke-width:2px
+    style Benchmarking fill:#e1f5fe,stroke:#01579b,stroke-width:2px,stroke-dasharray: 5 5
